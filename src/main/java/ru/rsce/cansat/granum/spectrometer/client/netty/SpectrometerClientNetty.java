@@ -15,8 +15,14 @@ import ru.rsce.cansat.granum.spectrometer.client.netty.MessageDecoder;
 import ru.rsce.cansat.granum.spectrometer.client.netty.MessageHandler;
 
 public class SpectrometerClientNetty extends SpectrometerClient{
-
-	public void start(String host, int port) throws Exception {
+        
+        public SpectrometerClientNetty(String host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+    
+        @Override
+	public void start() throws Exception {
 		workerGroup = new NioEventLoopGroup();
 		
 		try {
@@ -58,4 +64,6 @@ public class SpectrometerClientNetty extends SpectrometerClient{
 	
 	private EventLoopGroup workerGroup;
 	private Channel ch;
+        private final String host;
+        private final int port;
 }

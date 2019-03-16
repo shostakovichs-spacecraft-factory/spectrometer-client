@@ -14,6 +14,7 @@ import org.jfree.data.xy.XYDataItem;
 import ru.rsce.cansat.granum.spectrometer.client.gui.MainWindow;
 import ru.rsce.cansat.granum.spectrometer.client.netty.FrameMessage;
 import ru.rsce.cansat.granum.spectrometer.client.netty.Message;
+import ru.rsce.cansat.granum.spectrometer.client.netty.SpectrometerClient;
 import ru.rsce.cansat.granum.spectrometer.client.netty.SpectrometerClientNetty;
 import ru.rsce.cansat.granum.spectrometer.client.netty.SpectrometerClient.ClientMessageListener;
 
@@ -33,7 +34,7 @@ public class FrameMessageProcessor implements ClientMessageListener {
 	};
 	
 
-	public void attachToSpectrometerClient(SpectrometerClientNetty client) {
+	public void attachToSpectrometerClient(SpectrometerClient client) {
 		client.setMsgListener(this);
 	}
 	
@@ -54,7 +55,7 @@ public class FrameMessageProcessor implements ClientMessageListener {
                                 _mw.setPictureResolution(msg.getWidth(), msg.getHeight());
 				_mw.setSpectroPicture(picture);
 				_mw.setSpectroPlotData(plotData);
-                                _mw.setHistogramData(msg.getPixData());
+                                //_mw.setHistogramData(msg.getPixData());
 			}
 		});
 	}
@@ -126,16 +127,23 @@ public class FrameMessageProcessor implements ClientMessageListener {
 		switch (message.getPixFmt()) {
 		case YUYV422:
 			
-                        resampledPixels = _resampleYUYV(message.getPixData());
+                    resampledPixels = _resampleYUYV(message.getPixData());
+
+                    if (colorMode == ImageColorMode.COLORFULL) {
+                            bufferedImageType = BufferedImage.TYPE_3BYTE_BGR;
+                            rawData = _bgr888_from_YUYV(resampledPixels);
+                    } else {
+                            bufferedImageType = BufferedImage.TYPE_BYTE_GRAY;
+                            rawData = _i8_from_YUYV(resampledPixels);
+                    }
+                    break;
                     
-			if (colorMode == ImageColorMode.COLORFULL) {
-				bufferedImageType = BufferedImage.TYPE_3BYTE_BGR;
-				rawData = _bgr888_from_YUYV(resampledPixels);
-			} else {
-				bufferedImageType = BufferedImage.TYPE_BYTE_GRAY;
-				rawData = _i8_from_YUYV(resampledPixels);
-			}
-			break;
+                case GRAYSCALE8BIT:
+                    
+                    bufferedImageType = BufferedImage.TYPE_BYTE_GRAY;
+                    rawData = message.getPixData().clone();
+                    break;
+                    
 		default:
 			throw new InvalidParameterException("Не могут работать данными форматом пикселей кадра");
 		}
@@ -167,12 +175,24 @@ public class FrameMessageProcessor implements ClientMessageListener {
 		
 		ArrayList<XYDataItem> dataString = new ArrayList<>();
 		dataString.ensureCapacity((yStop-yStart));
+                
+                int decimationCoeff;
+                switch (message.getPixFmt()) {// @FIXME костыль, к обсуждению
+		case YUYV422:
+                    decimationCoeff = 2;
+                    break;
+                case GRAYSCALE8BIT:
+                    decimationCoeff = 1;
+                   break;
+                default:
+			throw new InvalidParameterException("Не могу работать данными форматом пикселей кадра");
+		}
 		
 		for (int y = yTopBound; y < yBottomBound; y++) {
 			int accamulatedData = 0;
 			for (int x = xLeftBound; x < xRightBound; x++) {
 				int targetPixelNumber = message.getWidth() * y + x;
-				int targetPixelYData = message.getPixData()[targetPixelNumber * 2] & 0xFF;
+				int targetPixelYData = message.getPixData()[targetPixelNumber * decimationCoeff] & 0xFF;
 				accamulatedData += targetPixelYData;
 			}
 			dataString.add(new XYDataItem(y, accamulatedData));

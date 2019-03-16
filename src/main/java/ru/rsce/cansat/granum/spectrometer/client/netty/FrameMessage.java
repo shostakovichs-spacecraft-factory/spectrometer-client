@@ -6,7 +6,7 @@ public class FrameMessage extends Message {
 	
 	public static enum PixFmt
 	{
-		YUYV422;
+		YUYV422, GRAYSCALE8BIT;
 		
 		public static long fourccFromString(String code) {
 			byte[] raw = code.getBytes();
@@ -18,13 +18,15 @@ public class FrameMessage extends Message {
 		public static PixFmt fromUint(long value) throws IllegalArgumentException {
 			if (fourccFromString("YUYV") == value)
 				return YUYV422;
+                        else if (fourccFromString("  40") == value)
+                                return GRAYSCALE8BIT;
 		
 			throw new IllegalArgumentException("Не верный fourcc код типа данных кадра");
 		}
 	}
 	
-
-	protected FrameMessage(int size_, Type type_, ByteBuf rawData) throws IllegalArgumentException {
+        //FIXME ask snork, why it was protected
+	public FrameMessage(int size_, Type type_, ByteBuf rawData) throws IllegalArgumentException {
 		super(size_, type_);
 		
 		assert this.getType() == Type.RAW_FRAME;

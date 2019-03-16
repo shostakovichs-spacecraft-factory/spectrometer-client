@@ -12,6 +12,10 @@ import ru.rsce.cansat.granum.spectrometer.client.netty.Message;
  * @author Kirs
  */
 public abstract class SpectrometerClient {
+    
+    public abstract void start() throws Exception;
+    public abstract void waitExit() throws Exception;
+    
     public static interface ClientMessageListener {
 		public void onSpectrometerMessage(Message msg) throws Exception;
     }
@@ -25,8 +29,6 @@ public abstract class SpectrometerClient {
             if (msgListener != null)
                     msgListener.onSpectrometerMessage(msg);
     }
-    
-    public abstract void waitExit() throws Exception;
     
     private ClientMessageListener msgListener;
 }

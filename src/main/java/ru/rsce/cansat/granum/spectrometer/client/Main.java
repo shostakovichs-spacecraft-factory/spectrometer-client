@@ -9,6 +9,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import ru.rsce.cansat.granum.spectrometer.client.gui.MainWindow;
+import ru.rsce.cansat.granum.spectrometer.client.mavlink.SpectrometerClientMavlink;
+import ru.rsce.cansat.granum.spectrometer.client.netty.SpectrometerClient;
 import ru.rsce.cansat.granum.spectrometer.client.netty.SpectrometerClientNetty;
 
 public class Main {
@@ -19,6 +21,7 @@ public class Main {
 	static {
 		opts.addOption("h", "host", true, "IP сервера спектрометра");
 		opts.addOption("p", "port", true, "порт сервера спектрометра");
+                opts.addOption("sp", "serialport", true, "Serial порт при использовании PX4FLOW");
 		opts.addOption("xc", "x-center", true, "Центр оси сканироания по X");
 		opts.addOption("xw", "x-width", true, "Ширина оси сканирования по X");
 		opts.addOption("yb", "y-begin", true, "Верхняя граница зоны сканирования по y");
@@ -27,7 +30,7 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-                
+
 		
 		CommandLine line;
 		try {
@@ -55,11 +58,12 @@ public class Main {
 	
 	private static void realMain(CommandLine line) {
 		final MainWindow window;
-		final SpectrometerClientNetty client;
+		final SpectrometerClient client;
 		final FrameMessageProcessor processor;
 		
 		final String host;
 		final int port;
+                final String serialport;
 		final int xCenter;
 		final int xWidth;
 		final int yStart;
@@ -70,7 +74,8 @@ public class Main {
 		{
 			host = line.getOptionValue("host", "192.168.0.200");
 			port = Integer.parseInt(line.getOptionValue("port", "6112"));
-			xCenter = Integer.parseInt(line.getOptionValue("x-center", String.format("%d", 640/2)));
+			serialport = line.getOptionValue("serialport", "COM10");
+                        xCenter = Integer.parseInt(line.getOptionValue("x-center", String.format("%d", 640/2)));
 			xWidth = Integer.parseInt(line.getOptionValue("x-width", String.format("%d", 1)));
 			yStart = Integer.parseInt(line.getOptionValue("y-begin", String.format("%d", 10)));
 			yStop = Integer.parseInt(line.getOptionValue("y-end", String.format("%d", 480-10)));
@@ -84,24 +89,31 @@ public class Main {
 			return;
 		}
 		
-		
-		try {
-			client = new SpectrometerClientNetty();
-			processor = new FrameMessageProcessor();
-                        msgprocessor = processor;
-			processor.setImageColorMode(mode);
+                try {
+                    //if(line.hasOption("serialport")) 
+                    {
+                        client = new SpectrometerClientMavlink(serialport);
+                    }
+                    /*else 
+                    {
+                        client = new SpectrometerClientNetty(host, port);
+                    }*/
+                    
+                    processor = new FrameMessageProcessor();
+                    msgprocessor = processor;
+                    processor.setImageColorMode(mode);
 
-                        window = new MainWindow();
-			processor.attachToMainWindow(window);
-			processor.attachToSpectrometerClient(client);
-			processor.setScanlineParams(xCenter, xWidth, yStart, yStop);
-			
-			client.start(host, port);
-		
-		} catch (Exception e) {
-			e.printStackTrace();
-			return;
-		}
+                    window = new MainWindow();
+                    processor.attachToMainWindow(window);
+                    processor.attachToSpectrometerClient(client);
+                    processor.setScanlineParams(xCenter, xWidth, yStart, yStop);
+                    
+                    client.start();
+                    
+                } catch (Exception e) {
+                            e.printStackTrace();
+                            return;
+                }
 
 		window.show();
 	}
