@@ -22,15 +22,16 @@ import ru.rsce.cansat.granum.spectrometer.client.netty.Message;
 
 public class SpectrometerClientMavlink extends SpectrometerClient {
     
-    public SpectrometerClientMavlink(String serPortName) {
+    public SpectrometerClientMavlink(String serPortName, int serBaudrate) {
         this.serPort = new SerialPort(serPortName);
+        this.serBaudrate = serBaudrate;
         thread = new MavlinkThread(this);
     }
     
     @Override
     public void start() throws Exception {
         serPort.openPort();
-        serPort.setParams(921600, jssc.SerialPort.DATABITS_8, jssc.SerialPort.STOPBITS_1, jssc.SerialPort.PARITY_NONE);
+        serPort.setParams(serBaudrate, jssc.SerialPort.DATABITS_8, jssc.SerialPort.STOPBITS_1, jssc.SerialPort.PARITY_NONE);
         
         connection = MavlinkConnection.create(new SerialInputStream(serPort), new DummyOutputStream());
         thread.start();
@@ -55,7 +56,7 @@ public class SpectrometerClientMavlink extends SpectrometerClient {
                     msg = client.connection.next();
                     
                     if(msg.getPayload().getClass() == DataTransmissionHandshake.class) {
-                        //System.out.println("Handshake!");
+                        System.out.println("Handshake!");
                         try {
                             pushFrame();
                         } catch(NullPointerException ex) {}
@@ -73,9 +74,9 @@ public class SpectrometerClientMavlink extends SpectrometerClient {
                     }
                     
                     if(msg.getPayload().getClass() == EncapsulatedData.class) {
-                        //System.out.print("Data #");
+                        System.out.print("Data #");
                         EncapsulatedData data = (EncapsulatedData) msg.getPayload();
-                        //System.out.println(data.seqnr());
+                        System.out.println(data.seqnr());
                         try {
                             if(currFrame > data.seqnr()) { //We've lost packets alltogether with handshake
                                 buffer = null;
@@ -121,6 +122,7 @@ public class SpectrometerClientMavlink extends SpectrometerClient {
     }
     
     private final SerialPort serPort;
+    private final int serBaudrate;
     private MavlinkConnection connection;
     private final MavlinkThread thread;
     

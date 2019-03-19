@@ -22,6 +22,7 @@ public class Main {
 		opts.addOption("h", "host", true, "IP сервера спектрометра");
 		opts.addOption("p", "port", true, "порт сервера спектрометра");
                 opts.addOption("sp", "serialport", true, "Serial порт при использовании PX4FLOW");
+                opts.addOption("b", "baudrate", true, "Serial baudrate");
 		opts.addOption("xc", "x-center", true, "Центр оси сканироания по X");
 		opts.addOption("xw", "x-width", true, "Ширина оси сканирования по X");
 		opts.addOption("yb", "y-begin", true, "Верхняя граница зоны сканирования по y");
@@ -64,6 +65,7 @@ public class Main {
 		final String host;
 		final int port;
                 final String serialport;
+                final int serialbaudrate;
 		final int xCenter;
 		final int xWidth;
 		final int yStart;
@@ -75,10 +77,11 @@ public class Main {
 			host = line.getOptionValue("host", "192.168.0.200");
 			port = Integer.parseInt(line.getOptionValue("port", "6112"));
 			serialport = line.getOptionValue("serialport", "COM10");
-                        xCenter = Integer.parseInt(line.getOptionValue("x-center", String.format("%d", 640/2)));
+                        serialbaudrate = Integer.parseInt(line.getOptionValue("baudrate", "921600"));
+                        xCenter = Integer.parseInt(line.getOptionValue("x-center", String.format("%d", 50)));
 			xWidth = Integer.parseInt(line.getOptionValue("x-width", String.format("%d", 1)));
-			yStart = Integer.parseInt(line.getOptionValue("y-begin", String.format("%d", 10)));
-			yStop = Integer.parseInt(line.getOptionValue("y-end", String.format("%d", 480-10)));
+			yStart = Integer.parseInt(line.getOptionValue("y-begin", String.format("%d", 0)));
+			yStop = Integer.parseInt(line.getOptionValue("y-end", String.format("%d", 0)));
 			mode = FrameMessageProcessor.ImageColorMode.fromString(line.getOptionValue("color-mode", "colorfull"));
 		}
 		catch (ParseException e)
@@ -90,14 +93,14 @@ public class Main {
 		}
 		
                 try {
-                    //if(line.hasOption("serialport")) 
+                    if(line.hasOption("serialport")) 
                     {
-                        client = new SpectrometerClientMavlink(serialport);
+                        client = new SpectrometerClientMavlink(serialport, serialbaudrate);
                     }
-                    /*else 
+                    else 
                     {
                         client = new SpectrometerClientNetty(host, port);
-                    }*/
+                    }
                     
                     processor = new FrameMessageProcessor();
                     msgprocessor = processor;

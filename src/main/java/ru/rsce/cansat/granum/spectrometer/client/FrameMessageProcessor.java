@@ -55,7 +55,7 @@ public class FrameMessageProcessor implements ClientMessageListener {
                                 _mw.setPictureResolution(msg.getWidth(), msg.getHeight());
 				_mw.setSpectroPicture(picture);
 				_mw.setSpectroPlotData(plotData);
-                                //_mw.setHistogramData(msg.getPixData());
+                                _mw.setHistogramData(msg.getPixData());
 			}
 		});
 	}
@@ -141,7 +141,7 @@ public class FrameMessageProcessor implements ClientMessageListener {
                 case GRAYSCALE8BIT:
                     
                     bufferedImageType = BufferedImage.TYPE_BYTE_GRAY;
-                    rawData = message.getPixData().clone();
+                    rawData = _resampleGRAYSCALE(message.getPixData());
                     break;
                     
 		default:
@@ -201,6 +201,20 @@ public class FrameMessageProcessor implements ClientMessageListener {
 		return dataString;
 	}
 
+        private byte[] _resampleGRAYSCALE(byte[] input) {
+            byte[] output = new byte[input.length];
+            
+            for (int pixId = 0; pixId < input.length; pixId++) {
+                float y = input[pixId] & 0xFF;
+                y -= resampleMin;
+                y *= 255 / resampleMax;
+                y = Math.max(Math.min(y, 255f), 0f);
+                output[pixId] = (byte) y;
+            }
+            
+            return output;
+        }
+        
         private byte[] _resampleYUYV(byte[] input) {
             byte[] output = new byte[input.length];
             
